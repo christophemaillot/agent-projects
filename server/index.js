@@ -16,6 +16,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const yaml = require('js-yaml');
 
 const TOKEN = process.env.PROJECTS_TOKEN;
 const DIR = path.resolve(process.env.PROJECTS_DIR || './memory/projects');
@@ -27,166 +28,21 @@ if (!TOKEN) {
   process.exit(1);
 }
 
-// --- YAML frontmatter parser (zero deps) ---
+// --- YAML frontmatter parser (using js-yaml) ---
 
 function parseFrontmatter(content) {
   const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/);
   if (!match) return { yaml: {}, body: content };
   try {
-    const yaml = parseYaml(match[1]);
-    return { yaml, body: match[2] };
+    const parsed = yaml.load(match[1]) || {};
+    return { yaml: parsed, body: match[2] };
   } catch (e) {
     return { yaml: {}, body: content };
   }
 }
 
-function serializeFrontmatter(yaml, body) {
-  return `---\n${stringifyYaml(yaml)}---\n\n${body}`;
-}
-
-// Minimal YAML parser — handles the subset used in project files
-function parseYaml(text) {
-  const lines = text.split('\n');
-  const root = {};
-  const stack = [{ obj: root, indent: -1 }];
-
-  function top() { return stack[stack.length - 1]; }
-
-  let i = 0;
-  while (i < lines.length) {
-    const line = lines[i];
-    if (!line.trim() || line.trim().startsWith('#')) { i++; continue; }
-
-    const indent = line.search(/\S/);
-    const content = line.trim();
-
-    // Pop stack to correct level
-    while (stack.length > 1 && indent <= top().indent) stack.pop();
-
-    // List item
-    if (content.startsWith('- ')) {
-      const value = content.slice(2).trim();
-      const parent = top().obj;
-      const key = top().currentKey;
-      if (key !== undefined) {
-        if (!Array.isArray(parent[key])) parent[key] = [];
-        if (value.includes(': ')) {
-          // Inline object in list
-          const obj = {};
-          parent[key].push(obj);
-          // parse remaining key: value pairs on next lines at deeper indent
-          const itemIndent = indent + 2;
-          const [k, v] = splitKV(value);
-          obj[k] = parseScalar(v);
-          // peek ahead for more fields of this object
-          let j = i + 1;
-          while (j < lines.length) {
-            const nextLine = lines[j];
-            if (!nextLine.trim()) { j++; continue; }
-            const nextIndent = nextLine.search(/\S/);
-            if (nextIndent < itemIndent) break;
-            if (nextLine.trim().startsWith('- ')) break;
-            const [nk, nv] = splitKV(nextLine.trim());
-            obj[nk] = parseScalar(nv);
-            j++;
-          }
-          i = j;
-          continue;
-        } else {
-          parent[key].push(parseScalar(value));
-        }
-      }
-      i++; continue;
-    }
-
-    // Key: value
-    if (content.includes(':')) {
-      const [k, v] = splitKV(content);
-      const parent = top().obj;
-      if (v === '' || v === null) {
-        parent[k] = {};
-        stack.push({ obj: parent[k], indent, currentKey: null });
-        top().currentKey = k;
-        // The new object is the child
-        const child = parent[k];
-        stack[stack.length - 1] = { obj: parent, indent: indent - 2, currentKey: k };
-        stack.push({ obj: child, indent });
-      } else {
-        parent[k] = parseScalar(v);
-        top().currentKey = k;
-      }
-      i++; continue;
-    }
-
-    i++;
-  }
-
-  return root;
-}
-
-function splitKV(str) {
-  const idx = str.indexOf(':');
-  if (idx === -1) return [str, ''];
-  const k = str.slice(0, idx).trim();
-  const v = str.slice(idx + 1).trim();
-  return [k, v || ''];
-}
-
-function parseScalar(v) {
-  if (v === '' || v === null || v === undefined) return null;
-  if (v === 'true') return true;
-  if (v === 'false') return false;
-  if (v === 'null' || v === '~') return null;
-  if (/^\d+$/.test(v)) return parseInt(v, 10);
-  // Strip quotes
-  if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) {
-    return v.slice(1, -1);
-  }
-  return v;
-}
-
-// Minimal YAML serializer
-function stringifyYaml(obj, indent = 0) {
-  const pad = '  '.repeat(indent);
-  let out = '';
-  for (const [k, v] of Object.entries(obj)) {
-    if (Array.isArray(v)) {
-      if (v.length === 0) {
-        out += `${pad}${k}: []\n`;
-      } else if (typeof v[0] === 'object' && v[0] !== null) {
-        out += `${pad}${k}:\n`;
-        for (const item of v) {
-          const entries = Object.entries(item);
-          out += `${pad}  - ${entries[0][0]}: ${yamlScalar(entries[0][1])}\n`;
-          for (const [ik, iv] of entries.slice(1)) {
-            out += `${pad}    ${ik}: ${yamlScalar(iv)}\n`;
-          }
-        }
-      } else {
-        out += `${pad}${k}:\n`;
-        for (const item of v) {
-          out += `${pad}  - ${yamlScalar(item)}\n`;
-        }
-      }
-    } else if (typeof v === 'object' && v !== null) {
-      out += `${pad}${k}:\n`;
-      out += stringifyYaml(v, indent + 1);
-    } else {
-      out += `${pad}${k}: ${yamlScalar(v)}\n`;
-    }
-  }
-  return out;
-}
-
-function yamlScalar(v) {
-  if (v === null || v === undefined) return 'null';
-  if (typeof v === 'boolean') return v ? 'true' : 'false';
-  if (typeof v === 'number') return String(v);
-  const s = String(v);
-  if (s.includes(':') || s.includes('#') || s.startsWith('"') || s.includes('\n')) {
-    return `"${s.replace(/"/g, '\\"')}"`;
-  }
-  return s;
+function serializeFrontmatter(data, body) {
+  return `---\n${yaml.dump(data, { lineWidth: 120, quotingType: '"' })}---\n\n${body}`;
 }
 
 // --- Project file helpers ---
@@ -194,7 +50,7 @@ function yamlScalar(v) {
 function listProjects() {
   if (!fs.existsSync(DIR)) return [];
   return fs.readdirSync(DIR)
-    .filter(f => f.endsWith('.md'))
+    .filter(f => f.endsWith('.md') && !f.startsWith('.'))
     .map(f => f.replace('.md', ''));
 }
 
