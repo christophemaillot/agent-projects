@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Projects</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #22263a;
+    --border: #2e3347;
+    --text: #e2e8f0;
+    --muted: #8892a4;
+    --accent: #6c8ef7;
+    --green: #4ade80;
+    --yellow: #facc15;
+    --red: #f87171;
+    --orange: #fb923c;
+  }
+
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; min-height: 100vh; }
+
+  header { padding: 20px 24px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; }
+  header h1 { font-size: 18px; font-weight: 600; color: var(--text); }
+  header .subtitle { color: var(--muted); font-size: 13px; }
+  .token-input { margin-left: auto; display: flex; gap: 8px; }
+  .token-input input { background: var(--surface); border: 1px solid var(--border); color: var(--text); padding: 6px 10px; border-radius: 6px; font-size: 13px; width: 220px; }
+  .token-input input::placeholder { color: var(--muted); }
+  .token-input button, button.primary { background: var(--accent); color: #fff; border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; }
+  .token-input button:hover, button.primary:hover { opacity: 0.85; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; padding: 24px; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .card-header { padding: 16px 18px 12px; display: flex; align-items: flex-start; gap: 10px; border-bottom: 1px solid var(--border); }
+  .card-header h2 { font-size: 15px; font-weight: 600; flex: 1; }
+  .status-badge { font-size: 11px; padding: 2px 8px; border-radius: 12px; font-weight: 500; white-space: nowrap; }
+  .status-active { background: rgba(74,222,128,0.15); color: var(--green); }
+  .status-paused { background: rgba(250,204,21,0.15); color: var(--yellow); }
+  .status-stalled { background: rgba(248,113,113,0.15); color: var(--red); }
+  .status-done { background: rgba(108,142,247,0.15); color: var(--accent); }
+  .status-archived { background: rgba(136,146,164,0.15); color: var(--muted); }
+
+  .tags { display: flex; flex-wrap: wrap; gap: 4px; padding: 10px 18px 0; }
+  .tag { font-size: 11px; background: var(--surface2); color: var(--muted); padding: 2px 7px; border-radius: 10px; }
+
+  .section { padding: 12px 18px; }
+  .section-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 8px; }
+
+  .problem { color: var(--muted); font-size: 13px; font-style: italic; line-height: 1.5; }
+  .vision { color: var(--text); font-size: 13px; line-height: 1.5; }
+
+  .phases { display: flex; flex-direction: column; gap: 4px; }
+  .phase { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; }
+  .phase-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 5px; flex-shrink: 0; }
+  .phase-done .phase-dot { background: var(--green); }
+  .phase-todo .phase-dot { background: var(--border); }
+  .phase-desc { color: var(--muted); font-size: 12px; }
+
+  .todos { display: flex; flex-direction: column; gap: 6px; }
+  .todo { display: flex; align-items: flex-start; gap: 8px; }
+  .todo input[type=checkbox] { margin-top: 3px; flex-shrink: 0; cursor: pointer; accent-color: var(--accent); }
+  .todo-text { font-size: 13px; flex: 1; }
+  .todo-done .todo-text { text-decoration: line-through; color: var(--muted); }
+  .priority { font-size: 10px; padding: 1px 5px; border-radius: 8px; font-weight: 600; flex-shrink: 0; margin-top: 3px; }
+  .priority-high { background: rgba(248,113,113,0.2); color: var(--red); }
+  .priority-medium { background: rgba(250,204,21,0.2); color: var(--yellow); }
+  .priority-low { background: rgba(136,146,164,0.2); color: var(--muted); }
+
+  .goals-list { display: flex; flex-direction: column; gap: 4px; }
+  .goal { font-size: 13px; display: flex; gap: 6px; align-items: flex-start; }
+  .goal::before { content: '→'; color: var(--accent); flex-shrink: 0; }
+
+  .facts-grid { display: flex; flex-direction: column; gap: 4px; }
+  .fact { display: flex; gap: 8px; font-size: 12px; }
+  .fact-key { color: var(--muted); flex-shrink: 0; min-width: 80px; }
+  .fact-val { color: var(--text); word-break: break-all; }
+  .fact-val a { color: var(--accent); text-decoration: none; }
+  .fact-val a:hover { text-decoration: underline; }
+
+  .empty { text-align: center; padding: 60px 24px; color: var(--muted); }
+  .empty h2 { font-size: 16px; margin-bottom: 8px; color: var(--text); }
+
+  .loading { text-align: center; padding: 60px; color: var(--muted); }
+
+  .progress-bar { height: 3px; background: var(--border); border-radius: 2px; margin: 0 18px 0; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.3s; }
+
+  .card-footer { padding: 10px 18px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+  .todo-count { font-size: 12px; color: var(--muted); }
+  .todo-count span { color: var(--text); font-weight: 500; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>🗂 Projects</h1>
+    <div class="subtitle">Agent project dashboard</div>
+  </div>
+  <div class="token-input">
+    <input type="password" id="tokenInput" placeholder="Bearer token" />
+    <button onclick="load()">Load</button>
+  </div>
+</header>
+
+<div id="app">
+  <div class="empty">
+    <h2>Enter your token to load projects</h2>
+    <p>Projects are loaded from the agent-projects server.</p>
+  </div>
+</div>
+
+<script>
+const API = window.location.origin;
+let TOKEN = localStorage.getItem('ap_token') || '';
+
+document.getElementById('tokenInput').value = TOKEN;
+
+function statusClass(s) {
+  return 'status-' + (s || 'active');
+}
+
+function statusLabel(s) {
+  return { active: '● Active', paused: '⏸ Paused', stalled: '⚠ Stalled', done: '✓ Done', archived: '○ Archived' }[s] || s;
+}
+
+function isUrl(v) {
+  return typeof v === 'string' && (v.startsWith('http://') || v.startsWith('https://'));
+}
+
+function renderTodo(todo, slug, idx) {
+  const doneClass = todo.done ? 'todo-done' : '';
+  const pClass = 'priority-' + (todo.priority || 'low');
+  return `
+    <div class="todo ${doneClass}" id="todo-${slug}-${idx}">
+      <input type="checkbox" ${todo.done ? 'checked' : ''} onchange="toggleTodo('${slug}', ${idx}, this.checked)" />
+      <span class="todo-text">${escHtml(todo.text)}</span>
+      <span class="priority ${pClass}">${todo.priority || 'low'}</span>
+    </div>`;
+}
+
+function renderPhase(phase) {
+  const cls = phase.done ? 'phase-done' : 'phase-todo';
+  return `
+    <div class="phase ${cls}">
+      <div class="phase-dot"></div>
+      <div>
+        <div>${escHtml(phase.name)}</div>
+        ${phase.desc ? `<div class="phase-desc">${escHtml(phase.desc)}</div>` : ''}
+      </div>
+    </div>`;
+}
+
+function renderCard(p) {
+  const todos = p.todos || [];
+  const doneTodos = todos.filter(t => t.done).length;
+  const openTodos = todos.filter(t => !t.done);
+  const progress = todos.length ? Math.round(doneTodos / todos.length * 100) : 0;
+  const phases = p.master_plan?.phases || [];
+  const goals = p.goals || [];
+  const facts = p.facts || {};
+  const tags = p.tags || [];
+
+  let html = `<div class="card" id="card-${p.slug}">`;
+
+  // Header
+  html += `<div class="card-header">
+    <h2>${escHtml(p.name || p.slug)}</h2>
+    <span class="status-badge ${statusClass(p.status)}">${statusLabel(p.status)}</span>
+  </div>`;
+
+  if (tags.length) {
+    html += `<div class="tags">${tags.map(t => `<span class="tag">${escHtml(t)}</span>`).join('')}</div>`;
+  }
+
+  // Progress bar
+  if (todos.length) {
+    html += `<div class="progress-bar" style="margin-top:12px"><div class="progress-fill" style="width:${progress}%"></div></div>`;
+  }
+
+  // Master plan
+  if (p.master_plan?.problem || p.master_plan?.vision) {
+    html += `<div class="section">`;
+    if (p.master_plan.problem) html += `<div class="problem">"${escHtml(p.master_plan.problem)}"</div>`;
+    if (p.master_plan.vision) html += `<div class="vision" style="margin-top:6px">${escHtml(p.master_plan.vision)}</div>`;
+    html += `</div>`;
+  }
+
+  // Phases
+  if (phases.length) {
+    html += `<div class="section"><div class="section-title">Phases</div><div class="phases">${phases.map(renderPhase).join('')}</div></div>`;
+  }
+
+  // Open todos
+  if (openTodos.length) {
+    const todoIdx = todos.map((t, i) => ({...t, _i: i})).filter(t => !t.done);
+    html += `<div class="section"><div class="section-title">Todos (${openTodos.length})</div><div class="todos">`;
+    html += todoIdx.map(t => renderTodo(t, p.slug, t._i)).join('');
+    html += `</div></div>`;
+  }
+
+  // Goals
+  if (goals.length) {
+    html += `<div class="section"><div class="section-title">Goals</div><div class="goals-list">`;
+    html += goals.map(g => `<div class="goal">${escHtml(g)}</div>`).join('');
+    html += `</div></div>`;
+  }
+
+  // Facts
+  const factEntries = Object.entries(facts).filter(([k]) => !k.startsWith('_'));
+  if (factEntries.length) {
+    html += `<div class="section"><div class="section-title">Facts</div><div class="facts-grid">`;
+    html += factEntries.map(([k, v]) => {
+      const val = isUrl(v) ? `<a href="${escHtml(v)}" target="_blank">${escHtml(v)}</a>` : escHtml(String(v ?? ''));
+      return `<div class="fact"><span class="fact-key">${escHtml(k)}</span><span class="fact-val">${val}</span></div>`;
+    }).join('');
+    html += `</div></div>`;
+  }
+
+  // Footer
+  html += `<div class="card-footer">
+    <span class="todo-count"><span>${doneTodos}/${todos.length}</span> todos done</span>
+  </div>`;
+
+  html += `</div>`;
+  return html;
+}
+
+async function load() {
+  TOKEN = document.getElementById('tokenInput').value.trim();
+  localStorage.setItem('ap_token', TOKEN);
+
+  const app = document.getElementById('app');
+  app.innerHTML = '<div class="loading">Loading projects...</div>';
+
+  try {
+    const res = await fetch(`${API}/api/projects`, {
+      headers: { Authorization: `Bearer ${TOKEN}` }
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const projects = await res.json();
+
+    if (!projects.length) {
+      app.innerHTML = '<div class="empty"><h2>No projects found</h2><p>Add .md files to your projects directory.</p></div>';
+      return;
+    }
+
+    // Sort: active first, then paused, stalled, done, archived
+    const order = { active: 0, paused: 1, stalled: 2, done: 3, archived: 4 };
+    projects.sort((a, b) => (order[a.status] ?? 5) - (order[b.status] ?? 5));
+
+    app.innerHTML = `<div class="grid">${projects.map(renderCard).join('')}</div>`;
+  } catch (e) {
+    app.innerHTML = `<div class="empty"><h2>Error loading projects</h2><p>${escHtml(e.message)}</p></div>`;
+  }
+}
+
+async function toggleTodo(slug, idx, done) {
+  try {
+    const res = await fetch(`${API}/api/projects/${slug}`, {
+      headers: { Authorization: `Bearer ${TOKEN}` }
+    });
+    const project = await res.json();
+    if (!project.todos || !project.todos[idx]) return;
+    project.todos[idx].done = done;
+
+    await fetch(`${API}/api/projects/${slug}`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ todos: project.todos })
+    });
+
+    // Update UI
+    const todoEl = document.getElementById(`todo-${slug}-${idx}`);
+    if (todoEl) {
+      todoEl.classList.toggle('todo-done', done);
+    }
+
+    // Update progress bar
+    load();
+  } catch (e) {
+    console.error('Failed to toggle todo:', e);
+  }
+}
+
+function escHtml(str) {
+  return String(str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// Auto-load if token already set
+if (TOKEN) load();
+</script>
+</body>
+</html>
